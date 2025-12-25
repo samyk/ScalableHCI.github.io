@@ -76,80 +76,216 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('result').innerHTML = '失败原因排查信息:'+data.message;
     }
 
-    var marker_SUSTech = new AMap.Marker({
-        map:map,
-        position:[114.004724, 22.594871],
-        label: {
-            offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+    // Image mapping for markers - maps location names to image paths
+    var markerImages = {
+        "SUSTech School of Design": ["/assets/logo_SustechSchoolOfDesign.svg", "/assets/shenzhen_bg.jpg"],
+        "AIRS": ["/assets/logo_airs.jpg", "/assets/shenzhen_bg1.jpg"],
+        "City Hotel": ["/assets/shenzhen_bg2.jpg"],
+        "Yayuan Hotel": ["/assets/shenzhen_bg3.jpg"],
+        "Shenzhen Bao'an International Airport": ["/assets/shenzhen_bg4.jpg"],
+        "Hong Kong International Airport": ["/assets/shenzhen_bg.jpg"],
+        "Huaqiangbei": ["/assets/shenzhenbg2026.jpg", "/assets/shenzhenbg2026_1.jpg", "/assets/shenzhenbg2026_2.jpg"],
+        "SEG Plaza (5)": ["/assets/shenzhenbg2026_3.jpg", "/assets/shenzhenbg2026_4.jpg"]
+    };
+
+    // Helper function to create info window content with images
+    function createInfoWindowContent(title, images) {
+        var content = '<div style="padding: 10px; max-width: 500px;">';
+        content += '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">' + title + '</h3>';
+        
+        if (images && images.length > 0) {
+            images.forEach(function(imagePath, index) {
+                var uniqueId = 'img-' + Date.now() + '-' + index;
+                content += '<img id="' + uniqueId + '" src="' + imagePath + '" data-full-image="' + imagePath + '" ';
+                content += 'style="width: 240px; height: 240px; object-fit: cover; margin: 5px; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s; display: inline-block; vertical-align: top;" ';
+                content += 'alt="' + title + '" class="thumbnail-image" ';
+                content += 'onmouseover="this.style.transform=\'scale(1.05)\'; this.style.borderColor=\'#007bff\';" ';
+                content += 'onmouseout="this.style.transform=\'scale(1)\'; this.style.borderColor=\'#ddd\';" ';
+                content += 'onclick="window.openImageModal(\'' + imagePath.replace(/'/g, "\\'") + '\')" />';
+            });
+        }
+        
+        content += '</div>';
+        return content;
+    }
+
+    // Helper function to create a green marker icon
+    function createGreenMarkerIcon() {
+        // Create a green marker using AMap Icon with URL-encoded SVG
+        var svg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="34" viewBox="0 0 25 34"><path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 7.904 12.5 21.5 12.5 21.5S25 20.404 25 12.5C25 5.596 19.404 0 12.5 0zm0 17c-2.485 0-4.5-2.015-4.5-4.5s2.015-4.5 4.5-4.5 4.5 2.015 4.5 4.5-2.015 4.5-4.5 4.5z" fill="#28a745"/></svg>');
+        var icon = new AMap.Icon({
+            size: new AMap.Size(25, 34),
+            image: 'data:image/svg+xml,' + svg,
+            imageOffset: new AMap.Pixel(0, 0),
+            imageSize: new AMap.Size(25, 34)
+        });
+        return icon;
+    }
+
+    // Function to open image modal (attached to window for global access)
+    window.openImageModal = function(imagePath) {
+        var modal = document.getElementById('imageModal');
+        var modalImg = document.getElementById('modalImage');
+        
+        if (!modal) {
+            // Create modal if it doesn't exist
+            modal = document.createElement('div');
+            modal.id = 'imageModal';
+            modal.style.cssText = 'display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); cursor: pointer;';
+            modal.onclick = window.closeImageModal;
+            
+            var imgContainer = document.createElement('div');
+            imgContainer.style.cssText = 'position: relative; margin: auto; padding: 20px; max-width: 90%; max-height: 90%; top: 50%; transform: translateY(-50%); text-align: center;';
+            
+            var img = document.createElement('img');
+            img.id = 'modalImage';
+            img.style.cssText = 'max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 8px;';
+            
+            var closeBtn = document.createElement('span');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 10001; line-height: 1;';
+            closeBtn.onclick = function(e) {
+                e.stopPropagation();
+                window.closeImageModal();
+            };
+            
+            imgContainer.appendChild(closeBtn);
+            imgContainer.appendChild(img);
+            modal.appendChild(imgContainer);
+            document.body.appendChild(modal);
+        }
+        
+        modalImg = document.getElementById('modalImage');
+        modalImg.src = imagePath;
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    };
+
+    // Function to close image modal (attached to window for global access)
+    window.closeImageModal = function() {
+        var modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+    };
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            window.closeImageModal();
+        }
+    });
+
+    // Helper function to add click handler to marker
+    function addMarkerClickHandler(marker, title, images) {
+        var infoWindow = new AMap.InfoWindow({
+            content: createInfoWindowContent(title, images),
+            offset: new AMap.Pixel(0, -30)
+        });
+
+        marker.on('click', function() {
+            infoWindow.open(map, marker.getPosition());
+        });
+    }
+
+    // Helper function to create marker with optional green color if images exist
+    function createMarkerWithColor(position, labelConfig, hasImages) {
+        var markerOptions = {
+            map: map,
+            position: position,
+            label: labelConfig
+        };
+        
+        if (hasImages) {
+            markerOptions.icon = createGreenMarkerIcon();
+        }
+        
+        return new AMap.Marker(markerOptions);
+    }
+
+    var marker_SUSTech = createMarkerWithColor(
+        [114.004724, 22.594871],
+        {
+            offset: new AMap.Pixel(20, 20),
             content: "SUSTech School of Design"
-        }
-    })
+        },
+        markerImages["SUSTech School of Design"] && markerImages["SUSTech School of Design"].length > 0
+    );
+    addMarkerClickHandler(marker_SUSTech, "SUSTech School of Design", markerImages["SUSTech School of Design"]);
 
-    var marker_AIRS = new AMap.Marker({
-        map:map,
-        position:[114.062274, 22.602443],
-        label: {
-            offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+    var marker_AIRS = createMarkerWithColor(
+        [114.062274, 22.602443],
+        {
+            offset: new AMap.Pixel(20, 20),
             content: "AIRS"
-        }
-    })
+        },
+        markerImages["AIRS"] && markerImages["AIRS"].length > 0
+    );
+    addMarkerClickHandler(marker_AIRS, "AIRS", markerImages["AIRS"]);
 
-    var marker_CITYHotel = new AMap.Marker({
-        map:map,
-        position:[114.057476,22.602409],
-        label: {
-            offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+    var marker_CITYHotel = createMarkerWithColor(
+        [114.057476,22.602409],
+        {
+            offset: new AMap.Pixel(20, 20),
             content: "City Hotel"
-        }
-    })
+        },
+        markerImages["City Hotel"] && markerImages["City Hotel"].length > 0
+    );
+    addMarkerClickHandler(marker_CITYHotel, "City Hotel", markerImages["City Hotel"]);
 
-    var marker_YYHotel = new AMap.Marker({
-        map:map,
-        position:[113.994189,22.591906],
-        label: {
-            offset: new AMap.Pixel(-80, 20),//修改label相对于maker的位置
+    var marker_YYHotel = createMarkerWithColor(
+        [113.994189,22.591906],
+        {
+            offset: new AMap.Pixel(-80, 20),
             content: "Yayuan Hotel"
-        }
-    })
+        },
+        markerImages["Yayuan Hotel"] && markerImages["Yayuan Hotel"].length > 0
+    );
+    addMarkerClickHandler(marker_YYHotel, "Yayuan Hotel", markerImages["Yayuan Hotel"]);
     
-    var marker_Airport = new AMap.Marker({
-        map:map,
-        position:[113.813974,22.624361],
-        label: {
-            offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+    var marker_SZAirport = createMarkerWithColor(
+        [113.813974,22.624361],
+        {
+            offset: new AMap.Pixel(20, 20),
             content: "Shenzhen Bao'an International Airport"
-        }
-    })
+        },
+        markerImages["Shenzhen Bao'an International Airport"] && markerImages["Shenzhen Bao'an International Airport"].length > 0
+    );
+    addMarkerClickHandler(marker_SZAirport, "Shenzhen Bao'an International Airport", markerImages["Shenzhen Bao'an International Airport"]);
     
-    var marker_Airport = new AMap.Marker({
-        map:map,
-        position:[113.941527, 22.311526],
-        label: {
-            offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+    var marker_HKAirport = createMarkerWithColor(
+        [113.941527, 22.311526],
+        {
+            offset: new AMap.Pixel(20, 20),
             content: "Hong Kong International Airport"
-        }
-    })
+        },
+        markerImages["Hong Kong International Airport"] && markerImages["Hong Kong International Airport"].length > 0
+    );
+    addMarkerClickHandler(marker_HKAirport, "Hong Kong International Airport", markerImages["Hong Kong International Airport"]);
 
-    var marker_Hqb = new AMap.Marker({
-        map:map,
-        position:[114.085413,22.544441],
-        label: {
-            offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+    var marker_Hqb = createMarkerWithColor(
+        [114.085413,22.544441],
+        {
+            offset: new AMap.Pixel(20, 20),
             content: "Huaqiangbei"
-        }
-    })
+        },
+        markerImages["Huaqiangbei"] && markerImages["Huaqiangbei"].length > 0
+    );
+    addMarkerClickHandler(marker_Hqb, "Huaqiangbei", markerImages["Huaqiangbei"]);
 
 
     // Andy adding per-building info
     // SEG plaza as reference point
-var marker_SEGPlaza = new AMap.Marker({
-    map: map,
-    position: [114.08756800938518, 22.54132787092848],
-    label: {
+var marker_SEGPlaza = createMarkerWithColor(
+    [114.08756800938518, 22.54132787092848],
+    {
         offset: new AMap.Pixel(20, 20),
         content: "SEG Plaza (5)"
-    }
-});
+    },
+    markerImages["SEG Plaza (5)"] && markerImages["SEG Plaza (5)"].length > 0
+);
+addMarkerClickHandler(marker_SEGPlaza, "SEG Plaza (5)", markerImages["SEG Plaza (5)"]);
 
 
 var electronicMarkets = [
@@ -198,16 +334,26 @@ var electronicMarketsCoords = [
     [22.54260653405832, 114.08699608938642 ],
 ];
 
+// Add images for electronic markets (using generic Shenzhen images if no specific images)
+var electronicMarketsImages = {
+    "HQB Museum (B2)": ["/assets/shenzhenbg2026_5.jpg", "/assets/shenzhenbg2026.jpg"]
+};
+
 for (var i = 0; i < electronicMarketsCoords.length; i++) {
-    var marker = new AMap.Marker({
-        map: map,
-        position: [electronicMarketsCoords[i][1], electronicMarketsCoords[i][0]],
-        label: {
+    // Get images if available, otherwise empty array
+    var images = electronicMarketsImages[electronicMarkets[i]] || [];
+    var hasImages = images && images.length > 0;
+    
+    var marker = createMarkerWithColor(
+        [electronicMarketsCoords[i][1], electronicMarketsCoords[i][0]],
+        {
             offset: new AMap.Pixel(20, 20),
             content: electronicMarkets[i],
             anchor:'bottom-left',
-        }
-    });
+        },
+        hasImages
+    );
+    addMarkerClickHandler(marker, electronicMarkets[i], images);
 }
 
 
@@ -282,7 +428,33 @@ for (var i = 0; i < electronicMarketsCoords.length; i++) {
         min-height: 800px;
     }
 
-    .amap-maps {
-        /* height: 800px; */
+    /* Style for info window thumbnail images */
+    .amap-info-content .thumbnail-image {
+        display: inline-block;
+        vertical-align: top;
+    }
+
+    /* Modal styles */
+    #imageModal {
+        animation: fadeIn 0.3s;
+    }
+
+    #imageModal #modalImage {
+        animation: zoomIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes zoomIn {
+        from { transform: scale(0.8); }
+        to { transform: scale(1); }
+    }
+
+    #imageModal span:hover {
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255,255,255,0.8);
     }
 </style>
