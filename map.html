@@ -396,42 +396,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (hasImages) {
             markerOptions.icon = createGreenMarkerIcon();
-            // Make clickable markers show pointer cursor
-            markerOptions.cursor = 'pointer';
-        } else {
-            // Make non-clickable markers have default cursor
-            markerOptions.cursor = 'default';
         }
         
         var marker = new AMap.Marker(markerOptions);
-        
-        // Set cursor via DOM element after marker is added to map
-        setTimeout(function() {
-            try {
-                var markerEl = marker.getContent();
-                if (markerEl) {
-                    // Find the marker container element
-                    var container = markerEl.parentElement || markerEl;
-                    if (container) {
-                        if (hasImages) {
-                            container.style.cursor = 'pointer';
-                            // Also set on the marker element itself
-                            if (markerEl.style) {
-                                markerEl.style.cursor = 'pointer';
-                            }
-                        } else {
-                            container.style.cursor = 'default';
-                            if (markerEl.style) {
-                                markerEl.style.cursor = 'default';
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                // Silently fail if DOM access fails
-            }
-        }, 100);
-        
         return marker;
     }
 
