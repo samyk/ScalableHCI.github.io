@@ -304,10 +304,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Close modal on Escape key
+    // Track currently open InfoWindow
+    var currentInfoWindow = null;
+
+    // Close modal and InfoWindow on Escape key
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
+            // Close image modal if open
             window.closeImageModal();
+            // Close InfoWindow if open
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+                currentInfoWindow = null;
+            }
         }
     });
 
@@ -319,7 +328,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         marker.on('click', function() {
+            // Close any previously open InfoWindow
+            if (currentInfoWindow && currentInfoWindow !== infoWindow) {
+                currentInfoWindow.close();
+            }
+            // Open new InfoWindow and track it
             infoWindow.open(map, marker.getPosition());
+            currentInfoWindow = infoWindow;
+        });
+
+        // Track when InfoWindow is closed (by clicking map or other means)
+        infoWindow.on('close', function() {
+            if (currentInfoWindow === infoWindow) {
+                currentInfoWindow = null;
+            }
         });
     }
 
