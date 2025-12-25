@@ -3,7 +3,8 @@ layout: page
 title: map
 ---
 
-<!-- <!doctype html>
+<!-- 
+<!doctype html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -19,7 +20,8 @@ title: map
             width:26rem;
         }
     </style>
-<body>-->
+<body>
+<!-- -->
 <div id='container'></div>
 <!-- <div class="info">
     <h4 id='status'></h4><hr>
@@ -222,21 +224,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to create info window content with images
     function createInfoWindowContent(title, images) {
-        // Width calculated for 2 images (240px each) + margins (5px each side) + padding (10px each side)
-        // 240 + 5 + 240 + 5 + 10 + 10 = 510px, using 520px for comfortable spacing
-        var content = '<div style="padding: 10px; max-width: 520px; width: 520px;">';
+        // Responsive width: 90% of viewport width, but max 520px (for 2 images side by side)
+        // Min width ensures it doesn't get too small on very small screens
+        // Max height: 80vh for scrolling when content is tall, but auto-size when content is small
+        var content = '<div id="infowindow-content-' + Date.now() + '" style="padding: 10px; max-width: min(520px, 90vw); width: min(520px, 90vw); min-width: 280px; max-height: 80vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; -webkit-overflow-scrolling: touch; touch-action: pan-y;">';
         content += '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">' + title + '</h3>';
         
         if (images && images.length > 0) {
+            // Use flexbox container to allow images to wrap naturally
+            content += '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">';
             images.forEach(function(imagePath, index) {
                 var uniqueId = 'img-' + Date.now() + '-' + index;
+                // Images: 240px preferred width, but flexible to fill available space when wrapping
+                // flex: 1 1 240px means: grow to fill space, shrink if needed, base size 240px
+                // When 2 fit: each takes ~240px. When 1 per row: expands to fill container width
                 content += '<img id="' + uniqueId + '" src="' + imagePath + '" data-full-image="' + imagePath + '" ';
-                content += 'style="width: 240px; height: 240px; object-fit: cover; margin: 5px; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s; display: inline-block; vertical-align: top;" ';
+                content += 'style="flex: 1 1 240px; min-width: 200px; max-width: calc(100% - 10px); height: 240px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s;" ';
                 content += 'alt="' + title + '" class="thumbnail-image" ';
                 content += 'onmouseover="this.style.transform=\'scale(1.05)\'; this.style.borderColor=\'#007bff\';" ';
                 content += 'onmouseout="this.style.transform=\'scale(1)\'; this.style.borderColor=\'#ddd\';" ';
                 content += 'onclick="window.openImageModal(\'' + imagePath.replace(/'/g, "\\'") + '\')" />';
             });
+            content += '</div>';
         }
         
         content += '</div>';
@@ -320,8 +329,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Helper function to add click handler to marker
+    // Helper function to add click handler to marker (only for markers with images)
     function addMarkerClickHandler(marker, title, images) {
+        // Don't add click handler if there are no images
+        if (!images || images.length === 0) {
+            return;
+        }
+        
         var infoWindow = new AMap.InfoWindow({
             content: createInfoWindowContent(title, images),
             offset: new AMap.Pixel(0, -30)
@@ -335,6 +349,43 @@ document.addEventListener('DOMContentLoaded', function() {
             // Open new InfoWindow and track it
             infoWindow.open(map, marker.getPosition());
             currentInfoWindow = infoWindow;
+            
+            // Enable scrolling on mobile after InfoWindow is opened
+            setTimeout(function() {
+                // Find the AMap InfoWindow DOM element
+                var amapInfoWindow = document.querySelector('.amap-info-window');
+                if (amapInfoWindow) {
+                    // Find the scrollable content div inside
+                    var scrollableDiv = amapInfoWindow.querySelector('div[style*="overflow-y"]');
+                    if (scrollableDiv) {
+                        // Ensure it's scrollable
+                        scrollableDiv.style.overflowY = 'auto';
+                        scrollableDiv.style.webkitOverflowScrolling = 'touch';
+                        scrollableDiv.style.touchAction = 'pan-y';
+                        
+                        // Prevent map panning when touching inside InfoWindow
+                        var preventMapPan = function(e) {
+                            e.stopPropagation();
+                        };
+                        
+                        scrollableDiv.addEventListener('touchstart', preventMapPan, { passive: false });
+                        scrollableDiv.addEventListener('touchmove', preventMapPan, { passive: false });
+                        scrollableDiv.addEventListener('touchend', preventMapPan, { passive: false });
+                    }
+                    
+                    // Also prevent map interaction on the InfoWindow container itself
+                    amapInfoWindow.style.touchAction = 'pan-y';
+                    var preventMapPanContainer = function(e) {
+                        // Only prevent if we're not on a clickable element
+                        if (e.target.tagName !== 'IMG' && e.target.tagName !== 'BUTTON') {
+                            e.stopPropagation();
+                        }
+                    };
+                    
+                    amapInfoWindow.addEventListener('touchstart', preventMapPanContainer, { passive: false });
+                    amapInfoWindow.addEventListener('touchmove', preventMapPanContainer, { passive: false });
+                }
+            }, 200);
         });
 
         // Track when InfoWindow is closed (by clicking map or other means)
@@ -355,9 +406,43 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (hasImages) {
             markerOptions.icon = createGreenMarkerIcon();
+            // Make clickable markers show pointer cursor
+            markerOptions.cursor = 'pointer';
+        } else {
+            // Make non-clickable markers have default cursor
+            markerOptions.cursor = 'default';
         }
         
-        return new AMap.Marker(markerOptions);
+        var marker = new AMap.Marker(markerOptions);
+        
+        // Set cursor via DOM element after marker is added to map
+        setTimeout(function() {
+            try {
+                var markerEl = marker.getContent();
+                if (markerEl) {
+                    // Find the marker container element
+                    var container = markerEl.parentElement || markerEl;
+                    if (container) {
+                        if (hasImages) {
+                            container.style.cursor = 'pointer';
+                            // Also set on the marker element itself
+                            if (markerEl.style) {
+                                markerEl.style.cursor = 'pointer';
+                            }
+                        } else {
+                            container.style.cursor = 'default';
+                            if (markerEl.style) {
+                                markerEl.style.cursor = 'default';
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Silently fail if DOM access fails
+            }
+        }, 100);
+        
+        return marker;
     }
 
     // Create all markers from the unified array
@@ -462,6 +547,40 @@ document.addEventListener('DOMContentLoaded', function() {
     .amap-info-content .thumbnail-image {
         display: inline-block;
         vertical-align: top;
+    }
+
+    /* Markers with images (green) should show pointer cursor */
+    .amap-marker {
+        cursor: pointer;
+    }
+    
+    /* Markers without images should show default cursor - override via inline style set in JS */
+
+    /* Ensure InfoWindow can scroll on mobile */
+    .amap-info-window {
+        max-height: 80vh !important;
+        overflow: visible !important;
+        touch-action: pan-y !important;
+    }
+
+    .amap-info-content {
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        height: auto !important;
+    }
+    
+    /* Ensure InfoWindow container sizes to content */
+    .amap-info-window-content-wrapper {
+        height: auto !important;
+        max-height: 80vh !important;
+    }
+
+    /* Prevent map interaction when touching InfoWindow */
+    .amap-info-window * {
+        touch-action: pan-y !important;
     }
 
     /* Modal styles */
