@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Min width ensures it doesn't get too small on very small screens
         // Height: Use min-height for auto-sizing, but max-height: 80vh for scrolling when content is tall
         // Important: Need both min-height and max-height for proper scrolling behavior
-        var content = '<div id="infowindow-content-' + Date.now() + '" style="padding: 10px; max-width: min(520px, 90vw); width: min(520px, 90vw); min-width: 280px; min-height: fit-content; max-height: 80vh; height: auto; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column;">';
+        var content = '<div id="infowindow-content-' + Date.now() + '" style="padding: 10px; max-width: min(520px, 90vw); width: min(520px, 90vw); min-width: 280px; min-height: fit-content; max-height: 80vh; height: auto; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; display: flex; flex-direction: column;">';
         content += '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; flex-shrink: 0;">' + title + '</h3>';
         
         if (images && images.length > 0) {
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
             infoWindow.open(map, marker.getPosition());
             currentInfoWindow = infoWindow;
             
-            // Enable scrolling on mobile after InfoWindow is opened
+            // Set up InfoWindow scrolling after it's opened
             setTimeout(function() {
                 // Find the AMap InfoWindow DOM element
                 var amapInfoWindow = document.querySelector('.amap-info-window');
@@ -369,36 +369,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         scrollableDiv.style.height = 'auto';
                         scrollableDiv.style.overflowY = 'auto';
                         scrollableDiv.style.overflowX = 'hidden';
-                        scrollableDiv.style.webkitOverflowScrolling = 'touch';
-                        scrollableDiv.style.touchAction = 'pan-y';
                         scrollableDiv.style.position = 'relative';
                         
                         // Force a reflow to ensure styles are applied
                         scrollableDiv.offsetHeight;
-                        
-                        // Always prevent map interaction when touching the scrollable area
-                        var stopPropagation = function(e) {
-                            e.stopPropagation();
-                        };
-                        
-                        scrollableDiv.addEventListener('touchstart', stopPropagation, { passive: true });
-                        scrollableDiv.addEventListener('touchmove', stopPropagation, { passive: true });
-                        scrollableDiv.addEventListener('touchend', stopPropagation, { passive: true });
-                        scrollableDiv.addEventListener('touchcancel', stopPropagation, { passive: true });
                     }
-                    
-                    // Prevent map panning when touching anywhere in InfoWindow (except images)
-                    amapInfoWindow.style.touchAction = 'pan-y';
-                    var stopPropagationContainer = function(e) {
-                        // Allow image clicks to work
-                        if (e.target.tagName === 'IMG') {
-                            return;
-                        }
-                        e.stopPropagation();
-                    };
-                    
-                    amapInfoWindow.addEventListener('touchstart', stopPropagationContainer, { passive: true });
-                    amapInfoWindow.addEventListener('touchmove', stopPropagationContainer, { passive: true });
                 }
             }, 300);
         });
@@ -549,8 +524,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 </script>
-<!-- </body>
-</html> -->
 
 
 <style>
@@ -571,11 +544,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /* Markers without images should show default cursor - override via inline style set in JS */
 
-    /* Ensure InfoWindow can scroll on mobile */
+    /* Ensure InfoWindow can scroll */
     .amap-info-window {
         max-height: 80vh !important;
         overflow: visible !important;
-        touch-action: pan-y !important;
         position: relative !important;
     }
 
@@ -583,8 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
         max-height: 80vh !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        -webkit-overflow-scrolling: touch !important;
-        touch-action: pan-y !important;
         height: auto !important;
         position: relative !important;
     }
@@ -599,13 +569,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .amap-info-content > div[style*="overflow-y"] {
         max-height: 80vh !important;
         overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        touch-action: pan-y !important;
-    }
-
-    /* Prevent map interaction when touching InfoWindow */
-    .amap-info-window * {
-        touch-action: pan-y !important;
     }
 
     /* Modal styles */
@@ -632,3 +595,8 @@ document.addEventListener('DOMContentLoaded', function() {
         text-shadow: 0 0 10px rgba(255,255,255,0.8);
     }
 </style>
+
+<!--
+</body>
+</html>
+<!-- -->
