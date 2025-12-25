@@ -90,19 +90,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to create info window content with images
     function createInfoWindowContent(title, images) {
-        var content = '<div style="padding: 10px; max-width: 500px;">';
+        var content = '<div style="padding: 10px; max-width: 520px;">';
         content += '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">' + title + '</h3>';
         
         if (images && images.length > 0) {
+            content += '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">';
             images.forEach(function(imagePath, index) {
                 var uniqueId = 'img-' + Date.now() + '-' + index;
                 content += '<img id="' + uniqueId + '" src="' + imagePath + '" data-full-image="' + imagePath + '" ';
-                content += 'style="width: 240px; height: 240px; object-fit: cover; margin: 5px; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s; display: inline-block; vertical-align: top;" ';
+                content += 'style="width: 240px; height: 240px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s; flex-shrink: 0;" ';
                 content += 'alt="' + title + '" class="thumbnail-image" ';
                 content += 'onmouseover="this.style.transform=\'scale(1.05)\'; this.style.borderColor=\'#007bff\';" ';
                 content += 'onmouseout="this.style.transform=\'scale(1)\'; this.style.borderColor=\'#ddd\';" ';
                 content += 'onclick="window.openImageModal(\'' + imagePath.replace(/'/g, "\\'") + '\')" />';
             });
+            content += '</div>';
         }
         
         content += '</div>';
