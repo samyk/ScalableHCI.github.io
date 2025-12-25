@@ -76,35 +76,165 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('result').innerHTML = '失败原因排查信息:'+data.message;
     }
 
-    // Image mapping for markers - maps location names to image paths
-    var markerImages = {
-        "SUSTech School of Design": ["/assets/logo_SustechSchoolOfDesign.svg", "/assets/shenzhen_bg.jpg"],
-        "AIRS": ["/assets/logo_airs.jpg", "/assets/shenzhen_bg1.jpg"],
-        "City Hotel": ["/assets/shenzhen_bg2.jpg"],
-        "Yayuan Hotel": ["/assets/shenzhen_bg3.jpg"],
-        "Shenzhen Bao'an International Airport": ["/assets/shenzhen_bg4.jpg"],
-        "Hong Kong International Airport": ["/assets/shenzhen_bg.jpg"],
-        "Huaqiangbei": ["/assets/shenzhenbg2026.jpg", "/assets/shenzhenbg2026_1.jpg", "/assets/shenzhenbg2026_2.jpg"],
-        "SEG Plaza (5)": ["/assets/shenzhenbg2026_3.jpg", "/assets/shenzhenbg2026_4.jpg"]
-    };
+    // Unified marker data array - easy to add/modify markers
+    // labelOffset defaults to [20, 20] if not specified
+    var allMarkers = [
+        // Main locations
+        {
+            position: [114.004724, 22.594871],
+            title: "SUSTech School of Design",
+            images: ["/assets/logo_SustechSchoolOfDesign.svg", "/assets/shenzhen_bg.jpg"]
+        },
+        {
+            position: [114.062274, 22.602443],
+            title: "AIRS",
+            images: ["/assets/logo_airs.jpg", "/assets/shenzhen_bg1.jpg"]
+        },
+        {
+            position: [114.057476, 22.602409],
+            title: "City Hotel",
+            images: ["/assets/shenzhen_bg2.jpg"]
+        },
+        {
+            position: [113.994189, 22.591906],
+            title: "Yayuan Hotel",
+            labelOffset: [-80, 20],
+            images: ["/assets/shenzhen_bg3.jpg"]
+        },
+        {
+            position: [113.813974, 22.624361],
+            title: "Shenzhen Bao'an International Airport",
+            images: ["/assets/shenzhen_bg4.jpg"]
+        },
+        {
+            position: [113.941527, 22.311526],
+            title: "Hong Kong International Airport",
+            images: ["/assets/shenzhen_bg.jpg"]
+        },
+        {
+            position: [114.085413, 22.544441],
+            title: "Huaqiangbei",
+            images: ["/assets/shenzhenbg2026.jpg", "/assets/shenzhenbg2026_1.jpg", "/assets/shenzhenbg2026_2.jpg"]
+        },
+        {
+            position: [114.08756800938518, 22.54132787092848],
+            title: "SEG Plaza (5)",
+            images: ["/assets/shenzhenbg2026_3.jpg", "/assets/shenzhenbg2026_4.jpg"]
+        },
+        // Electronic markets
+        {
+            position: [114.08498483992268, 22.541137251425685],
+            title: "Passive component reels (A2)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08491519141874, 22.541748362962036],
+            title: "Tool building 4th floor (A3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08610502002784, 22.540922825684046],
+            title: "Component building (A3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08609341194385, 22.541957426813916],
+            title: "International LED building (A2)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08727150078714, 22.543751959061424],
+            title: "Interesting cell phone market (B1)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08793505444521, 22.542196699994776],
+            title: "Shipper alley (B2)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08812285265032, 22.542046376628377],
+            title: "Survelance market L5+L6 (B2)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08807277312897, 22.5425956342888],
+            title: "Survelance market L5+L6 (B2)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.09222465677284, 22.540289770499545],
+            title: "Cell phone components (B3,D3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08997912197103, 22.54025915796669],
+            title: "Cell phone components (B3,D3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08988797480194, 22.54003721690049],
+            title: "Soldering tools, behind (C3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08645752677745, 22.540228545425126],
+            title: "Second Hand Components Basement (A3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08707568800273, 22.542031764685536],
+            title: "Cameras L2+L3 (B2)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.0880815250345, 22.541283224249533],
+            title: "Wearables Mall (B3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.09071551556049, 22.540106938214265],
+            title: "Tool Brothers (C3)",
+            anchor: 'bottom-left',
+            images: []
+        },
+        {
+            position: [114.08699608938642, 22.54260653405832],
+            title: "HQB Museum (B2)",
+            anchor: 'bottom-left',
+            images: ["/assets/shenzhenbg2026_5.jpg", "/assets/shenzhenbg2026.jpg"]
+        }
+    ];
 
     // Helper function to create info window content with images
     function createInfoWindowContent(title, images) {
-        var content = '<div style="padding: 10px; max-width: 520px;">';
+        var content = '<div style="padding: 10px; max-width: 500px;">';
         content += '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">' + title + '</h3>';
         
         if (images && images.length > 0) {
-            content += '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">';
             images.forEach(function(imagePath, index) {
                 var uniqueId = 'img-' + Date.now() + '-' + index;
                 content += '<img id="' + uniqueId + '" src="' + imagePath + '" data-full-image="' + imagePath + '" ';
-                content += 'style="width: 240px; height: 240px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s; flex-shrink: 0;" ';
+                content += 'style="width: 240px; height: 240px; object-fit: cover; margin: 5px; border-radius: 4px; cursor: pointer; border: 2px solid #ddd; transition: transform 0.2s; display: inline-block; vertical-align: top;" ';
                 content += 'alt="' + title + '" class="thumbnail-image" ';
                 content += 'onmouseover="this.style.transform=\'scale(1.05)\'; this.style.borderColor=\'#007bff\';" ';
                 content += 'onmouseout="this.style.transform=\'scale(1)\'; this.style.borderColor=\'#ddd\';" ';
                 content += 'onclick="window.openImageModal(\'' + imagePath.replace(/'/g, "\\'") + '\')" />';
             });
-            content += '</div>';
         }
         
         content += '</div>';
@@ -206,157 +336,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return new AMap.Marker(markerOptions);
     }
 
-    var marker_SUSTech = createMarkerWithColor(
-        [114.004724, 22.594871],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: "SUSTech School of Design"
-        },
-        markerImages["SUSTech School of Design"] && markerImages["SUSTech School of Design"].length > 0
-    );
-    addMarkerClickHandler(marker_SUSTech, "SUSTech School of Design", markerImages["SUSTech School of Design"]);
-
-    var marker_AIRS = createMarkerWithColor(
-        [114.062274, 22.602443],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: "AIRS"
-        },
-        markerImages["AIRS"] && markerImages["AIRS"].length > 0
-    );
-    addMarkerClickHandler(marker_AIRS, "AIRS", markerImages["AIRS"]);
-
-    var marker_CITYHotel = createMarkerWithColor(
-        [114.057476,22.602409],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: "City Hotel"
-        },
-        markerImages["City Hotel"] && markerImages["City Hotel"].length > 0
-    );
-    addMarkerClickHandler(marker_CITYHotel, "City Hotel", markerImages["City Hotel"]);
-
-    var marker_YYHotel = createMarkerWithColor(
-        [113.994189,22.591906],
-        {
-            offset: new AMap.Pixel(-80, 20),
-            content: "Yayuan Hotel"
-        },
-        markerImages["Yayuan Hotel"] && markerImages["Yayuan Hotel"].length > 0
-    );
-    addMarkerClickHandler(marker_YYHotel, "Yayuan Hotel", markerImages["Yayuan Hotel"]);
-    
-    var marker_SZAirport = createMarkerWithColor(
-        [113.813974,22.624361],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: "Shenzhen Bao'an International Airport"
-        },
-        markerImages["Shenzhen Bao'an International Airport"] && markerImages["Shenzhen Bao'an International Airport"].length > 0
-    );
-    addMarkerClickHandler(marker_SZAirport, "Shenzhen Bao'an International Airport", markerImages["Shenzhen Bao'an International Airport"]);
-    
-    var marker_HKAirport = createMarkerWithColor(
-        [113.941527, 22.311526],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: "Hong Kong International Airport"
-        },
-        markerImages["Hong Kong International Airport"] && markerImages["Hong Kong International Airport"].length > 0
-    );
-    addMarkerClickHandler(marker_HKAirport, "Hong Kong International Airport", markerImages["Hong Kong International Airport"]);
-
-    var marker_Hqb = createMarkerWithColor(
-        [114.085413,22.544441],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: "Huaqiangbei"
-        },
-        markerImages["Huaqiangbei"] && markerImages["Huaqiangbei"].length > 0
-    );
-    addMarkerClickHandler(marker_Hqb, "Huaqiangbei", markerImages["Huaqiangbei"]);
-
-
-    // Andy adding per-building info
-    // SEG plaza as reference point
-var marker_SEGPlaza = createMarkerWithColor(
-    [114.08756800938518, 22.54132787092848],
-    {
-        offset: new AMap.Pixel(20, 20),
-        content: "SEG Plaza (5)"
-    },
-    markerImages["SEG Plaza (5)"] && markerImages["SEG Plaza (5)"].length > 0
-);
-addMarkerClickHandler(marker_SEGPlaza, "SEG Plaza (5)", markerImages["SEG Plaza (5)"]);
-
-
-var electronicMarkets = [
-    "Passive component reels (A2)",
-    "Tool building 4th floor (A3)",
-    "Component building (A3)",
-    "International LED building (A2)",
-    
-    // "SEG components building (B3)", # duplicate of SEG plaza
-    "Interesting cell phone market (B1)",
-    "Shipper alley (B2)",
-    "Survelance market L5+L6 (B2)",
-    "Survelance market L5+L6 (B2)",
-    // "Cell phone accessories (B2)", # couldn't find 9 on map
-
-    "Cell phone components (B3,D3)",
-    "Cell phone components (B3,D3)",
-    "Soldering tools, behind (C3)",
-    "Second Hand Components Basement (A3)",
-
-    "Cameras L2+L3 (B2)",
-    "Wearables Mall (B3)",
-    "Tool Brothers (C3)",
-    "HQB Museum (B2)"
-];
-
-var electronicMarketsCoords = [
-    [22.541137251425685, 114.08498483992268 ],
-    [22.541748362962036, 114.08491519141874 ],
-    [22.540922825684046, 114.08610502002784 ],
-    [22.541957426813916, 114.08609341194385 ],
-
-    [22.543751959061424, 114.08727150078714],
-    [22.542196699994776, 114.08793505444521],
-    [22.542046376628377, 114.08812285265032],
-    [22.5425956342888, 114.08807277312897],
-
-    [22.540289770499545, 114.09222465677284],
-    [22.54025915796669, 114.08997912197103],
-    [22.54003721690049, 114.08988797480194],
-    [22.540228545425126, 114.08645752677745],
-
-    [22.542031764685536, 114.08707568800273],
-    [22.541283224249533, 114.0880815250345],
-    [22.540106938214265, 114.09071551556049,],
-    [22.54260653405832, 114.08699608938642 ],
-];
-
-// Add images for electronic markets (using generic Shenzhen images if no specific images)
-var electronicMarketsImages = {
-    "HQB Museum (B2)": ["/assets/shenzhenbg2026_5.jpg", "/assets/shenzhenbg2026.jpg"]
-};
-
-for (var i = 0; i < electronicMarketsCoords.length; i++) {
-    // Get images if available, otherwise empty array
-    var images = electronicMarketsImages[electronicMarkets[i]] || [];
-    var hasImages = images && images.length > 0;
-    
-    var marker = createMarkerWithColor(
-        [electronicMarketsCoords[i][1], electronicMarketsCoords[i][0]],
-        {
-            offset: new AMap.Pixel(20, 20),
-            content: electronicMarkets[i],
-            anchor:'bottom-left',
-        },
-        hasImages
-    );
-    addMarkerClickHandler(marker, electronicMarkets[i], images);
-}
+    // Create all markers from the unified array
+    allMarkers.forEach(function(markerData) {
+        var images = markerData.images || [];
+        var hasImages = images && images.length > 0;
+        
+        // Default labelOffset is [20, 20]
+        var labelOffset = markerData.labelOffset || [20, 20];
+        
+        var labelConfig = {
+            offset: new AMap.Pixel(labelOffset[0], labelOffset[1]),
+            content: markerData.title
+        };
+        
+        if (markerData.anchor) {
+            labelConfig.anchor = markerData.anchor;
+        }
+        
+        var marker = createMarkerWithColor(
+            markerData.position,
+            labelConfig,
+            hasImages
+        );
+        
+        addMarkerClickHandler(marker, markerData.title, images);
+    });
 
 
 
