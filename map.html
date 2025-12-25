@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
         {
             position: [114.004724, 22.594871],
             title: "SUSTech School of Design",
+            address: "Bldg.C1, Nanshan Zhiyuan, No.1001 Xueyuan Avenue, Nanshan District, Shenzhen, Guangdong, China",
             images: ["https://media.nature.com/lw767/magazine-assets/d42473-018-00145-6/d42473-018-00145-6_16132146.jpg", "https://designschool.sustech.edu.cn/media/upload/LargeFile/IMGL9147.jpg", "/assets/logo_SustechSchoolOfDesign.svg", "/assets/shenzhen_bg.jpg"]
         },
         {
@@ -222,10 +223,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     ];
 
-    // Helper function to create info window content with images
-    function createInfoWindowContent(title, images) {
+    // Helper function to create info window content with images and address
+    function createInfoWindowContent(title, images, address) {
         var content = '<div id="infowindow-content-' + Date.now() + '" class="infowindow-content">';
         content += '<h3 class="infowindow-title">' + title + '</h3>';
+        
+        if (address) {
+            content += '<p class="infowindow-address">' + address + '</p>';
+        }
         
         if (images && images.length > 0) {
             content += '<div class="infowindow-images-container">';
@@ -319,15 +324,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Helper function to add click handler to marker (only for markers with images)
-    function addMarkerClickHandler(marker, title, images) {
-        // Don't add click handler if there are no images
-        if (!images || images.length === 0) {
+    // Helper function to add click handler to marker (for markers with images or address)
+    function addMarkerClickHandler(marker, title, images, address) {
+        // Don't add click handler if there are no images and no address
+        if ((!images || images.length === 0) && !address) {
             return;
         }
         
         var infoWindow = new AMap.InfoWindow({
-            content: createInfoWindowContent(title, images),
+            content: createInfoWindowContent(title, images, address),
             offset: new AMap.Pixel(0, -30)
         });
 
@@ -371,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Helper function to create marker with optional green color if images exist
-    function createMarkerWithColor(position, labelConfig, hasImages) {
+    function createMarkerWithColor(position, labelConfig, hasImages, isClickable) {
         var markerOptions = {
             map: map,
             position: position,
@@ -390,6 +395,10 @@ document.addEventListener('DOMContentLoaded', function() {
     allMarkers.forEach(function(markerData) {
         var images = markerData.images || [];
         var hasImages = images && images.length > 0;
+        var address = markerData.address || null;
+        var hasAddress = !!address;
+        // Marker is clickable if it has images OR address
+        var isClickable = hasImages || hasAddress;
         
         // Default labelOffset is [20, 20]
         var labelOffset = markerData.labelOffset || [20, 20];
@@ -403,13 +412,18 @@ document.addEventListener('DOMContentLoaded', function() {
             labelConfig.anchor = markerData.anchor;
         }
         
+        // Green marker if it has images (address-only markers stay blue but are still clickable)
         var marker = createMarkerWithColor(
             markerData.position,
             labelConfig,
-            hasImages
+            hasImages,
+            isClickable
         );
         
-        addMarkerClickHandler(marker, markerData.title, images);
+        // Add click handler if marker has images or address
+        if (isClickable) {
+            addMarkerClickHandler(marker, markerData.title, images, address);
+        }
     });
 
 
@@ -542,6 +556,14 @@ document.addEventListener('DOMContentLoaded', function() {
         margin: 0 0 10px 0;
         font-size: 16px;
         font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .infowindow-address {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #666;
+        line-height: 1.4;
         flex-shrink: 0;
     }
 
