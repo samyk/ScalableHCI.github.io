@@ -222,7 +222,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to create info window content with images
     function createInfoWindowContent(title, images) {
-        var content = '<div style="padding: 10px; max-width: 500px;">';
+        // Width calculated for 2 images (240px each) + margins (5px each side) + padding (10px each side)
+        // 240 + 5 + 240 + 5 + 10 + 10 = 510px, using 520px for comfortable spacing
+        var content = '<div style="padding: 10px; max-width: 520px; width: 520px;">';
         content += '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">' + title + '</h3>';
         
         if (images && images.length > 0) {
